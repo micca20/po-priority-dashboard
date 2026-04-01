@@ -746,8 +746,8 @@
             "Count Verified", "Being Counted", "Landed", "In Transit"
         ];
 
-        let poData = [
-            {order_ref:"P08984",po_stage:"Being Counted",priority:"0",total_quantity:4608.0,verified_count:0,total:129024.00,processing_type:"Fully Processed",vendor:"Resource Regeneration, LLC dba S3 Recycling Solutions",buyer:"Kyle Wainwright",landed_on:"2026-03-30 15:00:00",product_summary:"4608 Chromebooks",has_apple:"False",sorting_uid_count:0},
+        let poData = [];
+        const FALLBACK_PO_DATA = [            {order_ref:"P08984",po_stage:"Being Counted",priority:"0",total_quantity:4608.0,verified_count:0,total:129024.00,processing_type:"Fully Processed",vendor:"Resource Regeneration, LLC dba S3 Recycling Solutions",buyer:"Kyle Wainwright",landed_on:"2026-03-30 15:00:00",product_summary:"4608 Chromebooks",has_apple:"False",sorting_uid_count:0},
             {order_ref:"P08774",po_stage:"Being Counted",priority:"0",total_quantity:20000.0,verified_count:944,total:45396.60,processing_type:"Direct to Stock",vendor:"Shenzhen zhongcheng modern Technology Co., Ltd.",buyer:"Kyle Wainwright",landed_on:"2026-03-27 15:00:00",product_summary:"20000 All, 5002 Expenses",has_apple:"False",sorting_uid_count:0},
             {order_ref:"P08986",po_stage:"Being Counted",priority:"0",total_quantity:2800.0,verified_count:0,total:28000.00,processing_type:"Fully Processed",vendor:"Denali Advanced Integration",buyer:"Eden Morrison",landed_on:"2026-03-26 20:00:00",product_summary:"2800 Tablets",has_apple:"False",sorting_uid_count:0},
             {order_ref:"P08629",po_stage:"Being Counted",priority:"0",total_quantity:966.0,verified_count:0,total:4180.00,processing_type:"Direct to Stock",vendor:"Strictly Apple",buyer:"Kyle Wainwright",landed_on:"2026-03-19 14:00:00",product_summary:"900 Accessories, 52 Accessories (Products), 14 Apple Accessories (Products)",has_apple:"True",sorting_uid_count:0},
@@ -868,11 +868,11 @@
             {order_ref:"P06207",po_stage:"Value Add Staging",priority:"0",total_quantity:332.0,verified_count:334,total:2564.00,processing_type:"Fully Processed",vendor:"ComSources, LLC",buyer:"Jon LaPere",landed_on:"2025-12-09 16:00:00",product_summary:"332 Chromebooks",has_apple:"False",sorting_uid_count:0},
             {order_ref:"P05294",po_stage:"Value Add Staging",priority:"0",total_quantity:686.0,verified_count:689,total:9700.00,processing_type:"Fully Processed",vendor:"Nebsys",buyer:"Jon LaPere",landed_on:"2025-11-04 14:00:00",product_summary:"686 Chromebooks",has_apple:"False",sorting_uid_count:0},
             {order_ref:"P02467",po_stage:"Value Add Staging",priority:"0",total_quantity:1271.0,verified_count:1272,total:6752.00,processing_type:"Fully Processed",vendor:"Pleasant Valley Community School District",buyer:"Ryan Gillette",landed_on:"2025-06-03 16:00:32",product_summary:"1271 Chromebooks",has_apple:"False",sorting_uid_count:0}
-        ];
+        ]
 
         // State
         let currentModalPO = null;
-        const TODAY = new Date('2026-04-01');
+        const TODAY = new Date();
         let manualPriorities = {}; // Track manual order changes per stage
         let poNotes = {};
         let poOverrides = {}; // {ref: {priority, has_apple, processing_type}}
@@ -881,8 +881,33 @@
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxOd9BOKOAB73cD98xZTTZJAHNYvobWpnfsttO2VJDpVlgcjjjT3OHYCFtUQFcaqZcM/exec';
 
         // ===== CLOUD STATE =====
+        async function loadCloudData() {
+            try {
+                const res = await fetch(APPS_SCRIPT_URL + '?type=data');
+                if (!res.ok) throw new Error('Fetch failed: ' + res.status);
+                const data = await res.json();
+                if (data.poData && data.poData.length > 0) {
+                    poData = data.poData;
+                    const updated = data.updatedAt ? new Date(data.updatedAt).toLocaleString() : 'unknown';
+                    console.log('Loaded ' + poData.length + ' POs from cloud (updated: ' + updated + ')');
+                    return true;
+                }
+            } catch (e) {
+                console.warn('Cloud data load failed:', e);
+            }
+            return false;
+        }
+
         async function loadCloudState() {
             try {
+                // Load PO data from cloud first
+                const dataLoaded = await loadCloudData();
+                if (!dataLoaded && FALLBACK_PO_DATA.length > 0) {
+                    poData = FALLBACK_PO_DATA.slice();
+                    console.log('Using fallback PO data (' + poData.length + ' POs)');
+                }
+
+                // Load customizations
                 const res = await fetch(APPS_SCRIPT_URL);
                 if (!res.ok) throw new Error('Fetch failed: ' + res.status);
                 const data = await res.json();
@@ -902,14 +927,14 @@
                     });
                 }
                 cloudSyncEnabled = true;
-                document.getElementById('syncStatus').textContent = '☁️ Synced';
-                document.getElementById('syncStatus').style.color = '#4CAF50';
+                document.getElementById('syncStatus').textContent = dataLoaded ? '☁️ Live data' : '☁️ Synced (fallback data)';
+                document.getElementById('syncStatus').style.color = dataLoaded ? '#4CAF50' : '#FF9800';
             } catch (e) {
-                console.warn('Cloud load failed, using local state:', e);
-                // Fall back to localStorage
+                console.warn('Cloud load failed, using local/fallback state:', e);
+                if (poData.length === 0) poData = FALLBACK_PO_DATA.slice();
                 poNotes = loadFromStorage('po_notes') || {};
-                document.getElementById('syncStatus').textContent = '⚠️ Local only';
-                document.getElementById('syncStatus').style.color = '#FF9800';
+                document.getElementById('syncStatus').textContent = '⚠️ Offline';
+                document.getElementById('syncStatus').style.color = '#f44336';
             }
         }
 
