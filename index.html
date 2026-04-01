@@ -613,7 +613,7 @@
     <!-- Header -->
     <div class="header">
         <h1>PO Priority Dashboard</h1>
-        <div class="header-meta">Refreshed Tech Warehouse Operations | Last updated: <span id="timestamp">--:--</span></div>
+        <div class="header-meta">Refreshed Tech Warehouse Operations | Last updated: <span id="timestamp">--:--</span> | <span id="syncStatus" style="font-size: 12px;">☁️ Loading...</span></div>
     </div>
 
     <!-- Stats Bar -->
@@ -874,12 +874,89 @@
         let currentModalPO = null;
         const TODAY = new Date('2026-04-01');
         let manualPriorities = {}; // Track manual order changes per stage
-        let poNotes = loadFromStorage('po_notes') || {};
+        let poNotes = {};
+        let poOverrides = {}; // {ref: {priority, has_apple, processing_type}}
+        let cloudSyncEnabled = false;
+        let syncDebounceTimer = null;
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxOd9BOKOAB73cD98xZTTZJAHNYvobWpnfsttO2VJDpVlgcjjjT3OHYCFtUQFcaqZcM/exec';
+
+        // ===== CLOUD STATE =====
+        async function loadCloudState() {
+            try {
+                const res = await fetch(APPS_SCRIPT_URL);
+                if (!res.ok) throw new Error('Fetch failed: ' + res.status);
+                const data = await res.json();
+                if (data.customizations) {
+                    poNotes = data.customizations.poNotes || {};
+                    manualPriorities = data.customizations.manualPriorities || {};
+                    poOverrides = data.customizations.poOverrides || {};
+                    // Apply overrides to poData
+                    Object.keys(poOverrides).forEach(ref => {
+                        const po = poData.find(p => p.order_ref === ref);
+                        if (po) {
+                            const ov = poOverrides[ref];
+                            if (ov.priority !== undefined) po.priority = ov.priority;
+                            if (ov.has_apple !== undefined) po.has_apple = ov.has_apple;
+                            if (ov.processing_type !== undefined) po.processing_type = ov.processing_type;
+                        }
+                    });
+                }
+                cloudSyncEnabled = true;
+                document.getElementById('syncStatus').textContent = '☁️ Synced';
+                document.getElementById('syncStatus').style.color = '#4CAF50';
+            } catch (e) {
+                console.warn('Cloud load failed, using local state:', e);
+                // Fall back to localStorage
+                poNotes = loadFromStorage('po_notes') || {};
+                document.getElementById('syncStatus').textContent = '⚠️ Local only';
+                document.getElementById('syncStatus').style.color = '#FF9800';
+            }
+        }
+
+        function saveCloudState() {
+            clearTimeout(syncDebounceTimer);
+            const statusEl = document.getElementById('syncStatus');
+            if (statusEl) {
+                statusEl.textContent = '☁️ Saving...';
+                statusEl.style.color = '#2196F3';
+            }
+            syncDebounceTimer = setTimeout(async () => {
+                const state = {
+                    customizations: {
+                        poNotes: poNotes,
+                        manualPriorities: manualPriorities,
+                        poOverrides: poOverrides
+                    }
+                };
+                // Always save locally as backup
+                saveToStorage('po_notes', poNotes);
+                try {
+                    await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(state)
+                    });
+                    if (statusEl) {
+                        statusEl.textContent = '☁️ Synced';
+                        statusEl.style.color = '#4CAF50';
+                    }
+                } catch (e) {
+                    console.warn('Cloud save failed:', e);
+                    if (statusEl) {
+                        statusEl.textContent = '⚠️ Save failed';
+                        statusEl.style.color = '#f44336';
+                    }
+                }
+            }, 800);
+        }
 
         // ===== INITIALIZATION =====
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             updateTimestamp();
             populateFilterOptions();
+            // Load cloud state first, then render
+            await loadCloudState();
             renderDashboard();
             attachEventListeners();
         });
@@ -1274,6 +1351,7 @@
                 const stage = draggedStage;
                 const newOrder = Array.from(tbody.querySelectorAll('tr')).map(r => r.dataset.ref);
                 manualPriorities[stage] = newOrder;
+                saveCloudState();
             }
             return false;
         }
@@ -1288,6 +1366,9 @@
             const po = poData.find(p => p.order_ref === ref);
             if (po) {
                 po.priority = po.priority === "1" ? "0" : "1";
+                if (!poOverrides[ref]) poOverrides[ref] = {};
+                poOverrides[ref].priority = po.priority;
+                saveCloudState();
                 renderDashboard();
                 showToast(`${ref}: Priority ${po.priority === "1" ? "Urgent" : "Normal"}`);
             }
@@ -1297,6 +1378,9 @@
             const po = poData.find(p => p.order_ref === ref);
             if (po) {
                 po.has_apple = po.has_apple === "True" || po.has_apple === true ? "False" : "True";
+                if (!poOverrides[ref]) poOverrides[ref] = {};
+                poOverrides[ref].has_apple = po.has_apple;
+                saveCloudState();
                 renderDashboard();
                 showToast(`${ref}: Apple flag toggled`);
             }
@@ -1306,6 +1390,9 @@
             const po = poData.find(p => p.order_ref === ref);
             if (po) {
                 po.processing_type = po.processing_type === "Direct to Stock" ? "Fully Processed" : "Direct to Stock";
+                if (!poOverrides[ref]) poOverrides[ref] = {};
+                poOverrides[ref].processing_type = po.processing_type;
+                saveCloudState();
                 renderDashboard();
                 showToast(`${ref}: Processing type toggled`);
             }
@@ -1349,7 +1436,7 @@
             const tags = Array.from(document.querySelectorAll('.tag-checkbox input:checked')).map(cb => cb.value);
 
             poNotes[ref] = {text, tags};
-            saveToStorage('po_notes', poNotes);
+            saveCloudState();
 
             closeNotesModal();
             renderDashboard();
