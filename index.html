@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PO Priority Dashboard - Refreshed Tech</title>
+    <style>
+        .apple-logo { display: inline-block; width: 1em; height: 1em; vertical-align: -0.1em; }
+        .apple-logo svg { width: 100%; height: 100%; fill: currentColor; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        /* Header */
+        .header {
+            background-color: #1F3864;
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+
+        .header-meta {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            background-color: #fff;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            font-size: 13px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-label {
+            color: #666;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            font-size: 16px;
+            color: #1F3864;
+        }
+
+        .stat-value.urgent {
+            color: #C62828;
+        }
+
+        .stat-value.apple {
+            color: #1565C0;
+        }
+
+        .stat-value.dts {
+            color: #2E7D32;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            background-color: #fff;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .toolbar-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="text"],
+        select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            min-width: 140px;
+        }
+
+        input[type="text"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #1F3864;
+            box-shadow: 0 0 0 3px rgba(31, 56, 100, 0.1);
+        }
+
+        button {
+            padding: 8px 14px;
+            background-color: #1F3864;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #152a48;
+        }
+
+        button.secondary {
+            background-color: #666;
+        }
+
+        button.secondary:hover {
+            background-color: #555;
+        }
+
+        /* Filters Info */
+        .filters-info {
+            font-size: 12px;
+            color: #666;
+            padding: 8px 0;
+            margin-left: auto;
+        }
+
+        /* Stages Container */
+        .stages-container {
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Stage Section */
+        .stage-section {
+            margin-bottom: 24px;
+            background-color: white;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .stage-header {
+            background-color: #1F3864;
+            color: white;
+            padding: 14px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+
+        .stage-header:hover {
+            background-color: #152a48;
+        }
+
+        .stage-header.collapsed {
+            background-color: #2c4469;
+        }
+
+        .stage-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .stage-counts {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-left: 12px;
+        }
+
+        .stage-toggle {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            text-align: center;
+            line-height: 20px;
+            transition: transform 0.2s;
+        }
+
+        .stage-header.collapsed .stage-toggle {
+            transform: rotate(-90deg);
+        }
+
+        /* Stage Content */
+        .stage-content {
+            max-height: 10000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .stage-content.collapsed {
+            max-height: 0;
+        }
+
+        /* Table */
+        .po-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .po-table thead {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .po-table th {
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+        }
+
+        .po-table tbody tr {
+            border-bottom: 1px solid #e8e8e8;
+            transition: background-color 0.15s;
+        }
+
+        .po-table tbody tr:nth-child(odd) {
+            background-color: white;
+        }
+
+        .po-table tbody tr:nth-child(even) {
+            background-color: #F2F6FC;
+        }
+
+        /* Color coding overrides */
+        .po-table tbody tr.dts {
+            background-color: #F3E5F5 !important;
+            color: #6A1B9A;
+        }
+
+        .po-table tbody tr.urgent {
+            background-color: #FCE4EC !important;
+            color: #C62828;
+        }
+
+        .po-table tbody tr.apple {
+            background-color: #E3F2FD !important;
+            color: #1565C0;
+        }
+
+        .po-table tbody tr.days90 {
+            background-color: #FFF3E0 !important;
+            color: #E65100;
+        }
+
+        .po-table tbody tr.drag-over {
+            border-top: 3px solid #2196F3;
+            padding-top: 8px;
+        }
+
+        .po-table td {
+            padding: 12px 8px;
+            vertical-align: middle;
+        }
+
+        .po-table td:first-child {
+            width: 24px;
+            text-align: center;
+            padding: 8px 4px;
+        }
+
+        .drag-handle {
+            cursor: grab;
+            color: #999;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .po-table tr.dragging {
+            opacity: 0.5;
+        }
+
+        /* Order Ref */
+        .order-ref {
+            font-weight: 600;
+            color: #1F3864;
+            min-width: 80px;
+        }
+
+        /* Actions Cell */
+        .actions-cell {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+            color: inherit;
+        }
+
+        .icon-btn:hover {
+            background-color: rgba(0,0,0,0.1);
+        }
+
+        .tags-container {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            min-height: 20px;
+            align-items: center;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            white-space: nowrap;
+        }
+
+        .tag.priority {
+            background-color: #C62828;
+        }
+
+        .tag.blocked {
+            background-color: #F57C00;
+        }
+
+        .tag.waiting {
+            background-color: #1976D2;
+        }
+
+        .tag.follow-up {
+            background-color: #7B1FA2;
+        }
+
+        .tag.ready {
+            background-color: #388E3C;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.2s;
+        }
+
+        .modal.open {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            max-width: 500px;
+            width: 90%;
+            animation: slideIn 0.2s;
+        }
+
+        .modal-header {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1F3864;
+        }
+
+        .modal-close {
+            float: right;
+            font-size: 24px;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 13px;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .tag-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .tag-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tag-checkbox:hover {
+            border-color: #1F3864;
+        }
+
+        .tag-checkbox input {
+            cursor: pointer;
+        }
+
+        .tag-checkbox.checked {
+            border-color: #1F3864;
+            background-color: #f0f4f8;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #1F3864;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 13px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 2000;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .toolbar {
+                gap: 8px;
+            }
+
+            .po-table {
+                font-size: 12px;
+            }
+
+            .po-table th,
+            .po-table td {
+                padding: 8px 6px;
+            }
+
+            input[type="text"],
+            select {
+                min-width: 120px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-bar {
+                gap: 20px;
+                font-size: 12px;
+            }
+
+            .stat-value {
+                font-size: 14px;
+            }
+
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .toolbar-group {
+                flex-direction: column;
+            }
+
+            .toolbar-label {
+                display: none;
+            }
+
+            input[type="text"],
+            select,
+            button {
+                width: 100%;
+                min-width: unset;
+            }
+
+            .stages-container {
+                padding: 12px;
+            }
+
+            .po-table {
+                font-size: 11px;
+            }
+
+            .po-table th,
+            .po-table td {
+                padding: 6px 4px;
+            }
+
+            .filters-info {
+                display: none;
+            }
+
+            .modal-content {
+                max-width: 100%;
+                width: 95%;
+            }
+        }
+
+        /* Empty state */
+        .empty-state {
+            padding: 40px 20px;
+            text-align: center;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>PO Priority Dashboard</h1>
+        <div class="header-meta">Refreshed Tech Warehouse Operations | Last updated: <span id="timestamp">--:--</span></div>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar" id="statsBar">
+        <!-- Populated by JS -->
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <span class="toolbar-label">Search</span>
+            <input type="text" id="searchInput" placeholder="Order ref, vendor, buyer, product...">
+        </div>
+
+        <div class="toolbar-group">
+            <span class="toolbar-label">Stage</span>
+            <select id="filterStage">
+                <option value="">All Stages</option>
+            </select>
+        </div>
+
+        <div class="toolbar-group">
+            <span class="toolbar-label">Buyer</span>
+            <select id="filterBuyer">
+                <option value="">All Buyers</option>
+            </select>
+        </div>
+
+        <div class="toolbar-group">
+            <span class="toolbar-label">Vendor</span>
+            <select id="filterVendor">
+                <option value="">All Vendors</option>
+            </select>
+        </div>
+
+        <div class="toolbar-group">
+            <span class="toolbar-label">Type</span>
+            <select id="filterType">
+                <option value="">All Types</option>
+            </select>
+        </div>
+
+        <div class="toolbar-group">
+            <span class="toolbar-label">Sort</span>
+            <select id="sortBy">
+                <option value="stage">Default (Stage)</option>
+                <option value="days">Days On Hand</option>
+                <option value="qty">Total QTY</option>
+                <option value="value">Value</option>
+                <option value="landed">Date Landed</option>
+            </select>
+        </div>
+
+        <div class="toolbar-group">
+            <select id="sortDirection">
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+            </select>
+        </div>
+
+        <button onclick="resetFilters()">Reset Filters</button>
+        <button class="secondary" onclick="exportPriorities()">Export Priority List</button>
+
+        <div class="filters-info">
+            <span id="filterCount">--</span> / <span id="totalCount">--</span> POs visible
+        </div>
+    </div>
+
+    <!-- Stages Container -->
+    <div class="stages-container" id="stagesContainer">
+        <!-- Populated by JS -->
+    </div>
+
+    <!-- Notes/Tags Modal -->
+    <div id="notesModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeNotesModal()">&times;</button>
+            <div class="modal-header">Edit Notes & Tags</div>
+
+            <form onsubmit="saveNotes(event)">
+                <div class="form-group">
+                    <label>Order Reference</label>
+                    <div style="font-size: 14px; font-weight: 600; color: #1F3864;" id="modalOrderRef">--</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="notesInput">Notes</label>
+                    <textarea id="notesInput" placeholder="Add notes about this PO..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Tags</label>
+                    <div class="tag-selector">
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="tag" value="Priority"> Priority
+                        </label>
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="tag" value="Blocked"> Blocked
+                        </label>
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="tag" value="Waiting"> Waiting
+                        </label>
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="tag" value="Follow Up"> Follow Up
+                        </label>
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="tag" value="Ready"> Ready
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" onclick="closeNotesModal()" class="secondary">Cancel</button>
+                    <button type="submit">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ===== APPLE LOGO SVG =====
+        const APPLE_SVG = `<span class="apple-logo"><svg viewBox="0 0 814 1000" xmlns="http://www.w3.org/2000/svg"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.6-57.8-155.5-127.4c-58.8-82.8-106.3-211.1-106.3-332.8 0-195.6 127.1-299.4 252.9-299.4 66.8 0 122.4 43.4 164.1 43.4 39.5 0 101.1-46 176.2-46 28.5 0 130.9 2.6 198.3 99.2h0zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8.7 15.6 1.3 18.1 2.6.5 6.8 1.3 10.8 1.3 45.4 0 102.5-30.4 138.9-71.3z"/></svg></span>`;
+        const APPLE_SVG_HOLLOW = `<span class="apple-logo" style="opacity:0.3"><svg viewBox="0 0 814 1000" xmlns="http://www.w3.org/2000/svg"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.6-57.8-155.5-127.4c-58.8-82.8-106.3-211.1-106.3-332.8 0-195.6 127.1-299.4 252.9-299.4 66.8 0 122.4 43.4 164.1 43.4 39.5 0 101.1-46 176.2-46 28.5 0 130.9 2.6 198.3 99.2h0zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8.7 15.6 1.3 18.1 2.6.5 6.8 1.3 10.8 1.3 45.4 0 102.5-30.4 138.9-71.3z"/></svg></span>`;
+
+        // ===== DATA =====
+        const STAGE_ORDER = [
+            "Putaway", "Holding", "Value Add", "Value Add Staging",
+            "Sorting", "Pending ETL Import", "Grading", "Grading Staging",
+            "Cleaning", "Cleaning Staging", "Triage", "Triage Staging",
+            "Count Verified", "Being Counted", "Landed", "In Transit"
+        ];
+
+        let poData = [
+            {order_ref:"P08984",po_stage:"Being Counted",priority:"0",total_quantity:4608.0,verified_count:0,total:129024.00,processing_type:"Fully Processed",vendor:"Resource Regeneration, LLC dba S3 Recycling Solutions",buyer:"Kyle Wainwright",landed_on:"2026-03-30 15:00:00",product_summary:"4608 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08774",po_stage:"Being Counted",priority:"0",total_quantity:20000.0,verified_count:944,total:45396.60,processing_type:"Direct to Stock",vendor:"Shenzhen zhongcheng modern Technology Co., Ltd.",buyer:"Kyle Wainwright",landed_on:"2026-03-27 15:00:00",product_summary:"20000 All, 5002 Expenses",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08986",po_stage:"Being Counted",priority:"0",total_quantity:2800.0,verified_count:0,total:28000.00,processing_type:"Fully Processed",vendor:"Denali Advanced Integration",buyer:"Eden Morrison",landed_on:"2026-03-26 20:00:00",product_summary:"2800 Tablets",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08629",po_stage:"Being Counted",priority:"0",total_quantity:966.0,verified_count:0,total:4180.00,processing_type:"Direct to Stock",vendor:"Strictly Apple",buyer:"Kyle Wainwright",landed_on:"2026-03-19 14:00:00",product_summary:"900 Accessories, 52 Accessories (Products), 14 Apple Accessories (Products)",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P07184",po_stage:"Being Counted",priority:"0",total_quantity:1900.0,verified_count:0,total:27850.00,processing_type:"Fully Processed",vendor:"Elmore County BOE",buyer:"Ryan Gillette",landed_on:"2026-02-17 16:00:00",product_summary:"1650 Chromebooks, 250 Laptops, 1 Expenses",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P07420",po_stage:"Cleaning",priority:"0",total_quantity:663.0,verified_count:741,total:18383.28,processing_type:"Fully Processed",vendor:"Providence Capital",buyer:"Ryan Gillette",landed_on:"2026-02-10 18:00:00",product_summary:"548 Chromebooks, 63 Apple Laptops, 40 Apple Tablets, +more",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08760",po_stage:"Cleaning Staging",priority:"0",total_quantity:99.0,verified_count:81,total:5705.00,processing_type:"Fully Processed",vendor:"ComSources, LLC",buyer:"Kyle Wainwright",landed_on:"2026-03-27 15:00:00",product_summary:"99 Tablets",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08242",po_stage:"Cleaning Staging",priority:"0",total_quantity:161.0,verified_count:161,total:32200.00,processing_type:"Fully Processed",vendor:"CTS Mobility",buyer:"Eden Morrison",landed_on:"2026-02-27 20:00:00",product_summary:"161 Apple Smartphones",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P06200",po_stage:"Cleaning Staging",priority:"0",total_quantity:8863.0,verified_count:8863,total:5790.00,processing_type:"Fully Processed",vendor:"SS4IT",buyer:"Kyle Wainwright",landed_on:"2026-01-20 16:00:00",product_summary:"8863 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08568",po_stage:"Count Verified",priority:"0",total_quantity:120.0,verified_count:121,total:8310.00,processing_type:"Direct to Stock",vendor:"Global Computer Sales",buyer:"Mick Ventocilla",landed_on:"2026-03-23 14:00:00",product_summary:"120 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08326",po_stage:"Count Verified",priority:"0",total_quantity:25.0,verified_count:20,total:25.00,processing_type:"Fully Processed",vendor:"Honeywell Enterprise Mobility",buyer:"Eden Morrison",landed_on:"2026-02-27 14:00:00",product_summary:"25 All",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08325",po_stage:"Count Verified",priority:"0",total_quantity:303.0,verified_count:303,total:303.00,processing_type:"Fully Processed",vendor:"Honeywell Enterprise Mobility",buyer:"Eden Morrison",landed_on:"2026-02-27 14:00:00",product_summary:"303 All",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P04069",po_stage:"Count Verified",priority:"0",total_quantity:667.0,verified_count:667,total:0.00,processing_type:"Fully Processed",vendor:"Portland Public Schools, Oregon",buyer:"Ryan Gillette",landed_on:"2025-09-22 13:00:00",product_summary:"212 Chromebooks, 169 Apple Tablets, 80 Accessories (Products), +more",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08351",po_stage:"Grading",priority:"0",total_quantity:22.0,verified_count:25,total:220.00,processing_type:"Fully Processed",vendor:"Davie County School District",buyer:"Ryan Gillette",landed_on:"2026-03-09 17:00:00",product_summary:"22 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P07488",po_stage:"Grading",priority:"1",total_quantity:2913.0,verified_count:2913,total:29130.00,processing_type:"Fully Processed",vendor:"Hyperion Partners LLC",buyer:"Eden Morrison",landed_on:"2026-02-10 17:00:00",product_summary:"2379 All, 464 Smartphones, 70 Apple Smartphones",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P06203",po_stage:"Grading",priority:"0",total_quantity:14097.0,verified_count:18859,total:164198.32,processing_type:"Fully Processed",vendor:"AGI Repair, Inc.",buyer:"Kyle Wainwright",landed_on:"2025-12-13 17:00:00",product_summary:"14080 Chromebooks, 17 Laptops",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08821",po_stage:"Grading Staging",priority:"0",total_quantity:1912.0,verified_count:1913,total:160457.00,processing_type:"Fully Processed",vendor:"Lamapa Tech LLC",buyer:"Kyle Wainwright",landed_on:"2026-03-21 20:00:00",product_summary:"1912 Apple Tablets",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08477",po_stage:"Grading Staging",priority:"0",total_quantity:223.0,verified_count:223,total:20404.00,processing_type:"Fully Processed",vendor:"eReplacements, LLC  d/b/a Texas Depot and Lonestar Mobile",buyer:"Jon LaPere",landed_on:"2026-03-11 18:00:00",product_summary:"223 Apple Tablets",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08481",po_stage:"Grading Staging",priority:"0",total_quantity:320.0,verified_count:319,total:3200.00,processing_type:"Fully Processed",vendor:"Resource Regeneration, LLC dba S3 Recycling Solutions",buyer:"Kyle Wainwright",landed_on:"2026-03-09 17:00:00",product_summary:"320 Smartphones",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P05655",po_stage:"Grading Staging",priority:"0",total_quantity:183.0,verified_count:183,total:12430.00,processing_type:"Fully Processed",vendor:"SAU 70",buyer:"Ryan Gillette",landed_on:"2026-03-05 15:00:00",product_summary:"104 Apple Laptops, 79 Apple Tablets",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08344",po_stage:"Grading Staging",priority:"0",total_quantity:187.0,verified_count:187,total:1870.00,processing_type:"Fully Processed",vendor:"Injured Gadgets",buyer:"Mick Ventocilla",landed_on:"2026-02-27 21:00:00",product_summary:"187 All",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08208",po_stage:"Grading Staging",priority:"0",total_quantity:125.0,verified_count:128,total:1250.00,processing_type:"Fully Processed",vendor:"Buffalo Computer Recycling",buyer:"Jon LaPere",landed_on:"2026-02-26 15:00:00",product_summary:"115 Chromebooks, 10 Laptops",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P07916",po_stage:"Grading Staging",priority:"1",total_quantity:18.0,verified_count:18,total:2044.02,processing_type:"Fully Processed",vendor:"eReplacements, LLC  d/b/a Texas Depot and Lonestar Mobile",buyer:"Jon LaPere",landed_on:"2026-02-16 14:00:00",product_summary:"14 Apple All in Ones, 3 Apple Laptops, 1 Laptops",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08590",po_stage:"Holding",priority:"0",total_quantity:40.0,verified_count:40,total:4615.00,processing_type:"Fully Processed",vendor:"CTS Mobility",buyer:"Eden Morrison",landed_on:"2026-03-13 16:00:00",product_summary:"29 Apple Laptops, 11 Apple Smartphones",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P07893",po_stage:"Holding",priority:"0",total_quantity:481.0,verified_count:660,total:10350.00,processing_type:"Fully Processed",vendor:"Enfield Public Schools",buyer:"Josh Verhulst",landed_on:"2026-03-12 16:00:00",product_summary:"354 Apple Tablets, 100 Laptops, 27 Apple All in Ones",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08324",po_stage:"Holding",priority:"0",total_quantity:6000.0,verified_count:6086,total:166000.00,processing_type:"Fully Processed",vendor:"Denali Advanced Integration",buyer:"Eden Morrison",landed_on:"2026-03-04 16:00:00",product_summary:"6000 Apple Smartphones",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08329",po_stage:"Holding",priority:"0",total_quantity:55.0,verified_count:55,total:1310.00,processing_type:"Fully Processed",vendor:"Honeywell Enterprise Mobility",buyer:"Eden Morrison",landed_on:"2026-02-27 14:00:00",product_summary:"55 Apple Smartphones",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08328",po_stage:"Holding",priority:"0",total_quantity:45.0,verified_count:45,total:450.00,processing_type:"Fully Processed",vendor:"Honeywell Enterprise Mobility",buyer:"Eden Morrison",landed_on:"2026-02-27 14:00:00",product_summary:"45 Apple Smartphones",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08327",po_stage:"Holding",priority:"0",total_quantity:105.0,verified_count:106,total:1050.00,processing_type:"Fully Processed",vendor:"Honeywell Enterprise Mobility",buyer:"Eden Morrison",landed_on:"2026-02-27 14:00:00",product_summary:"105 Apple Smartphones",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P06657",po_stage:"Holding",priority:"0",total_quantity:1986.0,verified_count:2290,total:18084.00,processing_type:"Fully Processed",vendor:"Urban Piper",buyer:"Eden Morrison",landed_on:"2026-01-20 14:00:00",product_summary:"1758 Tablets, 228 Printers and Scanners",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P06660",po_stage:"Holding",priority:"0",total_quantity:915.0,verified_count:915,total:12810.00,processing_type:"Fully Processed",vendor:"ITsavvy",buyer:"Ryan Gillette",landed_on:"2025-12-19 18:00:00",product_summary:"915 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P05964",po_stage:"Holding",priority:"0",total_quantity:2952.0,verified_count:2952,total:14760.00,processing_type:"Fully Processed",vendor:"AGI Repair, Inc.",buyer:"Kyle Wainwright",landed_on:"2025-12-15 15:00:00",product_summary:"2952 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P06204",po_stage:"Holding",priority:"0",total_quantity:416.0,verified_count:416,total:8265.00,processing_type:"Fully Processed",vendor:"ITsavvy",buyer:"Ryan Gillette",landed_on:"2025-12-03 19:00:00",product_summary:"347 Chromebooks, 69 Laptops",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P05497",po_stage:"Holding",priority:"0",total_quantity:42.0,verified_count:43,total:6000.00,processing_type:"Fully Processed",vendor:"ComSources, LLC",buyer:"Kyle Wainwright",landed_on:"2025-11-10 14:00:00",product_summary:"42 Printers and Scanners, 1 Expenses",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P04378",po_stage:"Holding",priority:"0",total_quantity:584.0,verified_count:584,total:27378.00,processing_type:"Fully Processed",vendor:"ITsavvy",buyer:"Ryan Gillette",landed_on:"2025-09-30 14:00:00",product_summary:"584 Laptops",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P03331",po_stage:"Holding",priority:"0",total_quantity:148.0,verified_count:1,total:3096.00,processing_type:"Fully Processed",vendor:"Enfield Public Schools",buyer:"Josh Verhulst",landed_on:"2025-07-31 15:21:02",product_summary:"76 Apple All in Ones, 72 Apple Tablets",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08944",po_stage:"In Transit",priority:"0",total_quantity:74.0,verified_count:0,total:9374.00,processing_type:"Fully Processed",vendor:"eReplacements, LLC  d/b/a Texas Depot and Lonestar Mobile",buyer:"Jon LaPere",landed_on:"",product_summary:"74 Apple Tablets",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08992",po_stage:"In Transit",priority:"0",total_quantity:2425.0,verified_count:0,total:21825.00,processing_type:"Direct to Stock",vendor:"Phase2 International Traders",buyer:"Kyle Wainwright",landed_on:"",product_summary:"2425 Accessories",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08203",po_stage:"In Transit",priority:"0",total_quantity:60.0,verified_count:0,total:3660.00,processing_type:"Fully Processed",vendor:"Colorado Academy",buyer:"Ryan Gillette",landed_on:"",product_summary:"60 Apple Tablets",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08974",po_stage:"In Transit",priority:"0",total_quantity:1.0,verified_count:0,total:1250.00,processing_type:"Direct to Stock",vendor:"iDevice Wholesale",buyer:"Kyle Wainwright",landed_on:"",product_summary:"1 Apple Desktops",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08406",po_stage:"In Transit",priority:"0",total_quantity:25.0,verified_count:0,total:250.00,processing_type:"Fully Processed",vendor:"CTS Mobility",buyer:"Eden Morrison",landed_on:"",product_summary:"25 Laptops",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08913",po_stage:"In Transit",priority:"0",total_quantity:320.0,verified_count:0,total:36800.00,processing_type:"Fully Processed",vendor:"Shaw Industries",buyer:"Kyle Wainwright",landed_on:"",product_summary:"320 Apple Smartphones, 320 Expenses",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08706",po_stage:"In Transit",priority:"0",total_quantity:7400.0,verified_count:0,total:35150.00,processing_type:"Direct to Stock",vendor:"GZN Technology",buyer:"Kyle Wainwright",landed_on:"",product_summary:"7400 Accessories",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P09007",po_stage:"In Transit",priority:"0",total_quantity:14641.0,verified_count:0,total:76865.25,processing_type:"Direct to Stock",vendor:"National Cellular Trading",buyer:"Mick Ventocilla",landed_on:"",product_summary:"14641 Gaming Accessories",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08954",po_stage:"In Transit",priority:"0",total_quantity:300.0,verified_count:0,total:50600.00,processing_type:"Direct to Stock",vendor:"Mid-Atlantic Tek",buyer:"Kyle Wainwright",landed_on:"",product_summary:"300 Apple Tablets, 1 Expenses",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P07560",po_stage:"In Transit",priority:"0",total_quantity:6.0,verified_count:0,total:600.00,processing_type:"Fully Processed",vendor:"Linde Inc",buyer:"Josh Verhulst",landed_on:"",product_summary:"6 Smartphones",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P09006",po_stage:"In Transit",priority:"0",total_quantity:50.0,verified_count:0,total:1750.00,processing_type:"Direct to Stock",vendor:"Wireless Section ",buyer:"Kyle Wainwright",landed_on:"",product_summary:"50 Headphones",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08679",po_stage:"In Transit",priority:"0",total_quantity:611.0,verified_count:0,total:37860.00,processing_type:"Fully Processed",vendor:"PhoneCircle AS",buyer:"Mick Ventocilla",landed_on:"",product_summary:"611 Apple Tablets",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P09028",po_stage:"In Transit",priority:"0",total_quantity:199.0,verified_count:0,total:27860.00,processing_type:"Fully Processed",vendor:"Wireless Innovations",buyer:"Eden Morrison",landed_on:"",product_summary:"199 Apple Smartphones",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08961",po_stage:"Landed",priority:"0",total_quantity:1000.0,verified_count:0,total:2879.73,processing_type:"Direct to Stock",vendor:"Limitless USA",buyer:"Kyle Wainwright",landed_on:"2026-04-01 14:00:00",product_summary:"1000 All, 1 Expenses",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08970",po_stage:"Landed",priority:"0",total_quantity:2737.0,verified_count:0,total:112861.08,processing_type:"Fully Processed",vendor:"Lamapa Tech LLC",buyer:"Kyle Wainwright",landed_on:"2026-04-01 13:00:00",product_summary:"2737 Apple Tablets",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08936",po_stage:"Landed",priority:"0",total_quantity:563.0,verified_count:0,total:68230.00,processing_type:"Fully Processed",vendor:"Limitless USA",buyer:"Kyle Wainwright",landed_on:"2026-03-31 16:00:00",product_summary:"375 Apple Tablets, 188 Apple Laptops",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08980",po_stage:"Landed",priority:"0",total_quantity:520.0,verified_count:0,total:80600.00,processing_type:"Direct to Stock",vendor:"Maison Wireless",buyer:"Josh Verhulst",landed_on:"2026-03-31 16:00:00",product_summary:"520 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P09009",po_stage:"Landed",priority:"0",total_quantity:100.0,verified_count:0,total:11000.00,processing_type:"Direct to Stock",vendor:"Wireless Devices Inc",buyer:"Kyle Wainwright",landed_on:"2026-03-31 11:00:00",product_summary:"100 Apple Smartphones",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08468",po_stage:"Landed",priority:"0",total_quantity:5400.0,verified_count:0,total:48600.00,processing_type:"Direct to Stock",vendor:"Phase2 International Traders",buyer:"Kyle Wainwright",landed_on:"2026-03-30 15:00:00",product_summary:"5400 Accessories",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08506",po_stage:"Landed",priority:"0",total_quantity:5600.0,verified_count:0,total:26600.00,processing_type:"Scan Only",vendor:"GZN Technology",buyer:"Kyle Wainwright",landed_on:"2026-03-30 13:00:00",product_summary:"5600 Accessories",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08920",po_stage:"Landed",priority:"0",total_quantity:69.0,verified_count:0,total:23500.00,processing_type:"Fully Processed",vendor:"Taber Group, LLC dba mender",buyer:"Jon LaPere",landed_on:"2026-03-30 12:00:00",product_summary:"69 Apple Laptops",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08922",po_stage:"Landed",priority:"0",total_quantity:100.0,verified_count:0,total:1000.00,processing_type:"Fully Processed",vendor:"Cell Mechanic Inc",buyer:"Mick Ventocilla",landed_on:"2026-03-27 16:00:00",product_summary:"100 Laptops",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08941",po_stage:"Landed",priority:"0",total_quantity:100.0,verified_count:0,total:3250.00,processing_type:"Direct to Stock",vendor:"Wireless Section ",buyer:"Kyle Wainwright",landed_on:"2026-03-27 15:00:00",product_summary:"80 Headphones, 20 All",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08832",po_stage:"Landed",priority:"0",total_quantity:427.0,verified_count:0,total:9000.00,processing_type:"Fully Processed",vendor:"Sycamore International Inc. Mac Mutt",buyer:"Jon LaPere",landed_on:"2026-03-27 13:00:00",product_summary:"427 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08831",po_stage:"Landed",priority:"0",total_quantity:11.0,verified_count:0,total:0.00,processing_type:"Direct to Stock",vendor:"Refreshed Tech(vendor)",buyer:"Kyle Wainwright",landed_on:"2026-03-27 13:00:00",product_summary:"11 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08921",po_stage:"Landed",priority:"0",total_quantity:40.0,verified_count:0,total:2295.00,processing_type:"Fully Processed",vendor:"Sycamore International Inc. Mac Mutt",buyer:"Jon LaPere",landed_on:"2026-03-26 18:00:00",product_summary:"40 Tablets",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08829",po_stage:"Landed",priority:"0",total_quantity:16.0,verified_count:0,total:1360.00,processing_type:"Fully Processed",vendor:"iDoc",buyer:"Ryan Gillette",landed_on:"2026-03-18 18:00:00",product_summary:"16 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08476",po_stage:"Landed",priority:"0",total_quantity:224.0,verified_count:0,total:8500.21,processing_type:"Fully Processed",vendor:"ComSources, LLC",buyer:"Kyle Wainwright",landed_on:"2026-03-11 13:00:00",product_summary:"224 Networking Devices",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08398",po_stage:"Landed",priority:"0",total_quantity:426.0,verified_count:0,total:10563.00,processing_type:"Fully Processed",vendor:"Sycamore International Inc. Mac Mutt",buyer:"Jon LaPere",landed_on:"2026-03-10 17:00:00",product_summary:"426 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08209",po_stage:"Landed",priority:"0",total_quantity:390.0,verified_count:0,total:3900.00,processing_type:"Fully Processed",vendor:"Santa Clara Unified School District",buyer:"Jon LaPere",landed_on:"2026-03-05 18:00:00",product_summary:"367 Chromebooks, 23 Laptops",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08338",po_stage:"Landed",priority:"0",total_quantity:132.0,verified_count:0,total:1320.00,processing_type:"Fully Processed",vendor:"Santa Clara Unified School District",buyer:"Jon LaPere",landed_on:"2026-03-05 17:00:00",product_summary:"124 Laptops, 6 All in Ones, 2 Desktops",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08377",po_stage:"Landed",priority:"0",total_quantity:722.0,verified_count:0,total:21660.00,processing_type:"Fully Processed",vendor:"Mid-Atlantic Tek",buyer:"Kyle Wainwright",landed_on:"2026-03-04 14:00:00",product_summary:"722 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08076",po_stage:"Landed",priority:"0",total_quantity:150.0,verified_count:0,total:4200.00,processing_type:"Fully Processed",vendor:"Nebsys",buyer:"Jon LaPere",landed_on:"2026-02-26 13:00:00",product_summary:"100 Chromebooks, 50 Laptops",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08188",po_stage:"Landed",priority:"0",total_quantity:408.0,verified_count:0,total:6669.00,processing_type:"Fully Processed",vendor:"Abiding Technologies",buyer:"Jon LaPere",landed_on:"2026-02-24 19:00:00",product_summary:"250 Laptops, 158 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08038",po_stage:"Landed",priority:"0",total_quantity:542.0,verified_count:0,total:8130.00,processing_type:"Fully Processed",vendor:"Abiding Technologies",buyer:"Jon LaPere",landed_on:"2026-02-24 12:00:00",product_summary:"542 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P07842",po_stage:"Landed",priority:"0",total_quantity:100.0,verified_count:0,total:700.00,processing_type:"Fully Processed",vendor:"Pandora Gilboa Local School District",buyer:"Ryan Gillette",landed_on:"2026-02-19 19:00:00",product_summary:"100 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P07434",po_stage:"Landed",priority:"0",total_quantity:80.0,verified_count:0,total:720.00,processing_type:"Fully Processed",vendor:"West Side School District #202",buyer:"Ryan Gillette",landed_on:"2026-02-10 15:00:00",product_summary:"80 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P07407",po_stage:"Landed",priority:"0",total_quantity:50.0,verified_count:0,total:500.00,processing_type:"Fully Processed",vendor:"Malcolm Public Schools District 148, Nebraska",buyer:"Ryan Gillette",landed_on:"2026-02-09 15:00:00",product_summary:"50 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08009",po_stage:"Pending ETL Import",priority:"0",total_quantity:9.0,verified_count:7,total:608.00,processing_type:"Fully Processed",vendor:"Infinity DW",buyer:"Eden Morrison",landed_on:"2026-03-27 15:00:00",product_summary:"9 Apple Tablets",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08763",po_stage:"Pending ETL Import",priority:"0",total_quantity:1483.0,verified_count:1407,total:57124.00,processing_type:"Fully Processed",vendor:"Lamapa Tech LLC",buyer:"Kyle Wainwright",landed_on:"2026-03-18 15:00:00",product_summary:"1483 Apple Tablets, 1 Expenses",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08367",po_stage:"Pending ETL Import",priority:"0",total_quantity:25.0,verified_count:9,total:250.00,processing_type:"Fully Processed",vendor:"CTS Mobility",buyer:"Eden Morrison",landed_on:"2026-03-09 13:00:00",product_summary:"25 All",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08470",po_stage:"Pending ETL Import",priority:"0",total_quantity:1160.0,verified_count:1160,total:160038.42,processing_type:"Fully Processed",vendor:"Resource Regeneration, LLC dba S3 Recycling Solutions",buyer:"Kyle Wainwright",landed_on:"2026-03-05 14:00:00",product_summary:"1062 Apple Smartphones, 98 Smartphones",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08307",po_stage:"Pending ETL Import",priority:"0",total_quantity:138.0,verified_count:138,total:1144.40,processing_type:"Fully Processed",vendor:"Iconic Management Solutions",buyer:"Eden Morrison",landed_on:"2026-02-27 20:00:00",product_summary:"54 Smartphones, 52 Apple Tablets, 32 Apple Smartphones",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08133",po_stage:"Pending ETL Import",priority:"0",total_quantity:4000.0,verified_count:2291,total:220000.00,processing_type:"Fully Processed",vendor:"Lamapa Tech LLC",buyer:"Kyle Wainwright",landed_on:"2026-02-19 15:00:00",product_summary:"2000 Apple Laptops, 2000 Apple Tablets",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P06686",po_stage:"Pending ETL Import",priority:"0",total_quantity:245.0,verified_count:245,total:4410.00,processing_type:"Fully Processed",vendor:"CentricsIT, LLC",buyer:"Josh Verhulst",landed_on:"2025-12-26 17:00:00",product_summary:"245 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08376",po_stage:"Putaway",priority:"0",total_quantity:1110.0,verified_count:0,total:65000.06,processing_type:"Direct to Stock",vendor:"Mid-Atlantic Tek",buyer:"Kyle Wainwright",landed_on:"2026-03-09 16:00:00",product_summary:"1110 Apple Tablets",has_apple:"True",sorting_uid_count:51},
+            {order_ref:"P08184",po_stage:"Putaway",priority:"0",total_quantity:341.0,verified_count:341,total:45715.00,processing_type:"Direct to Stock",vendor:"Connected Solutions Group",buyer:"Eden Morrison",landed_on:"2026-02-27 20:00:00",product_summary:"132 Apple Smartphones, 83 Smartphones, 67 Apple Tablets, +more",has_apple:"True",sorting_uid_count:341},
+            {order_ref:"P07882",po_stage:"Putaway",priority:"0",total_quantity:489.0,verified_count:509,total:2101.00,processing_type:"Fully Processed",vendor:"ITsavvy",buyer:"Ryan Gillette",landed_on:"2026-02-09 19:00:00",product_summary:"442 Chromebooks, 47 Apple Tablets",has_apple:"True",sorting_uid_count:240},
+            {order_ref:"P06438",po_stage:"Putaway",priority:"0",total_quantity:2670.0,verified_count:0,total:36400.00,processing_type:"Fully Processed",vendor:"Upward Assets LLC",buyer:"Kyle Wainwright",landed_on:"2025-12-15 16:00:00",product_summary:"2670 Chromebooks",has_apple:"False",sorting_uid_count:128},
+            {order_ref:"P06540",po_stage:"Putaway",priority:"0",total_quantity:8076.0,verified_count:8324,total:129289.21,processing_type:"Fully Processed",vendor:"SS4IT",buyer:"Kyle Wainwright",landed_on:"2025-12-10 21:00:00",product_summary:"8076 Chromebooks",has_apple:"False",sorting_uid_count:395},
+            {order_ref:"P04049",po_stage:"Putaway",priority:"0",total_quantity:1697.0,verified_count:1699,total:17528.00,processing_type:"Fully Processed",vendor:"Nebsys",buyer:"Kyle Wainwright",landed_on:"2025-09-22 15:00:00",product_summary:"1691 Chromebooks, 6 Laptops",has_apple:"False",sorting_uid_count:719},
+            {order_ref:"P08505",po_stage:"Sorting",priority:"0",total_quantity:485.0,verified_count:485,total:29100.00,processing_type:"Fully Processed",vendor:"GZN Technology",buyer:"Kyle Wainwright",landed_on:"2026-03-17 15:00:00",product_summary:"485 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08509",po_stage:"Sorting",priority:"0",total_quantity:111.0,verified_count:116,total:1891.00,processing_type:"Fully Processed",vendor:"ARCOA Group",buyer:"Jon LaPere",landed_on:"2026-03-11 13:00:00",product_summary:"111 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08036",po_stage:"Sorting",priority:"0",total_quantity:93.0,verified_count:93,total:805.00,processing_type:"Fully Processed",vendor:"Techcycle Solutions",buyer:"Jon LaPere",landed_on:"2026-02-19 15:00:00",product_summary:"93 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08002",po_stage:"Sorting",priority:"0",total_quantity:49.0,verified_count:49,total:6402.43,processing_type:"Fully Processed",vendor:"859 Electronics",buyer:"Mick Ventocilla",landed_on:"2026-02-11 17:00:00",product_summary:"49 Apple Smart Watches",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08959",po_stage:"Triage",priority:"0",total_quantity:1200.0,verified_count:1200,total:30000.00,processing_type:"Fully Processed",vendor:"Resource Regeneration, LLC dba S3 Recycling Solutions",buyer:"Kyle Wainwright",landed_on:"2026-03-30 12:00:00",product_summary:"1200 Smartphones",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08923",po_stage:"Triage",priority:"0",total_quantity:166.0,verified_count:166,total:42500.00,processing_type:"Fully Processed",vendor:"Sims Recycling Solutions, Inc., DBA Sims Lifecycle Services",buyer:"Jon LaPere",landed_on:"2026-03-26 18:00:00",product_summary:"166 Apple Laptops",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P07348",po_stage:"Triage",priority:"0",total_quantity:2008.0,verified_count:2005,total:32096.00,processing_type:"Fully Processed",vendor:"Arey Jones Educational Solutions",buyer:"Ryan Gillette",landed_on:"2026-03-11 15:00:00",product_summary:"2008 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P07546",po_stage:"Triage",priority:"0",total_quantity:300.0,verified_count:398,total:3000.00,processing_type:"Fully Processed",vendor:"Hopebridge Autism Therapy Centers",buyer:"Eden Morrison",landed_on:"2026-01-30 14:00:00",product_summary:"300 Laptops",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P04855",po_stage:"Triage",priority:"1",total_quantity:204.0,verified_count:204,total:33499.98,processing_type:"Fully Processed",vendor:"KD Assets",buyer:"Jon LaPere",landed_on:"2025-10-16 18:00:00",product_summary:"204 Laptops",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08189",po_stage:"Triage Staging",priority:"0",total_quantity:700.0,verified_count:688,total:7000.00,processing_type:"Fully Processed",vendor:"Managed Cellular and Telecom Services",buyer:"Eden Morrison",landed_on:"2026-03-31 14:00:00",product_summary:"700 Tablets",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08781",po_stage:"Triage Staging",priority:"0",total_quantity:244.0,verified_count:244,total:24186.00,processing_type:"Fully Processed",vendor:"eReplacements, LLC  d/b/a Texas Depot and Lonestar Mobile",buyer:"Jon LaPere",landed_on:"2026-03-24 16:00:00",product_summary:"244 Apple Tablets",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P07904",po_stage:"Triage Staging",priority:"0",total_quantity:305.0,verified_count:305,total:4270.00,processing_type:"Fully Processed",vendor:"Nazareth Area School District",buyer:"Ryan Gillette",landed_on:"2026-03-18 18:00:00",product_summary:"305 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08417",po_stage:"Triage Staging",priority:"0",total_quantity:392.0,verified_count:389,total:3920.00,processing_type:"Fully Processed",vendor:"PedalPoint LifeCycle Solutions",buyer:"Jon LaPere",landed_on:"2026-03-12 16:00:00",product_summary:"389 Chromebooks, 3 Laptops",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08205",po_stage:"Triage Staging",priority:"0",total_quantity:282.0,verified_count:282,total:16099.38,processing_type:"Fully Processed",vendor:"Dynamic Lifecycle Innovations Inc.",buyer:"Jon LaPere",landed_on:"2026-03-02 17:00:00",product_summary:"282 Laptops",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08145",po_stage:"Triage Staging",priority:"1",total_quantity:200.0,verified_count:201,total:20000.00,processing_type:"Fully Processed",vendor:"Telamon Enterprise Ventures LLC",buyer:"Josh Verhulst",landed_on:"2026-02-26 12:00:00",product_summary:"200 Laptops",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P07205",po_stage:"Triage Staging",priority:"0",total_quantity:400.0,verified_count:305,total:4000.00,processing_type:"Fully Processed",vendor:"Taylor ISD",buyer:"Ryan Gillette",landed_on:"2026-02-24 15:00:00",product_summary:"400 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08132",po_stage:"Triage Staging",priority:"0",total_quantity:272.0,verified_count:272,total:10880.00,processing_type:"Scan Only",vendor:"Africa Church Planting Initiative",buyer:"Josh Verhulst",landed_on:"2026-02-19 20:00:00",product_summary:"272 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08063",po_stage:"Triage Staging",priority:"0",total_quantity:11.0,verified_count:11,total:1650.00,processing_type:"Fully Processed",vendor:"Providence Capital",buyer:"Ryan Gillette",landed_on:"2026-02-19 16:00:00",product_summary:"11 Laptops",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08045",po_stage:"Triage Staging",priority:"0",total_quantity:5804.0,verified_count:5804,total:523483.00,processing_type:"Fully Processed",vendor:"Lamapa Tech LLC",buyer:"Kyle Wainwright",landed_on:"2026-02-19 15:00:00",product_summary:"4346 Apple Laptops, 1311 Apple Tablets, 141 Chromebooks, +more",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P07308",po_stage:"Triage Staging",priority:"0",total_quantity:1000.0,verified_count:1131,total:10000.00,processing_type:"Fully Processed",vendor:"Davie County School District",buyer:"Ryan Gillette",landed_on:"2026-02-16 15:00:00",product_summary:"1000 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P07589",po_stage:"Triage Staging",priority:"0",total_quantity:689.0,verified_count:689,total:11224.00,processing_type:"Fully Processed",vendor:"PedalPoint LifeCycle Solutions",buyer:"Jon LaPere",landed_on:"2026-02-04 17:00:00",product_summary:"619 Chromebooks, 70 Laptops",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P07440",po_stage:"Triage Staging",priority:"0",total_quantity:64.0,verified_count:64,total:9525.60,processing_type:"Fully Processed",vendor:"CTS Mobility",buyer:"Eden Morrison",landed_on:"2026-01-26 14:00:00",product_summary:"31 Apple Smartphones, 25 Apple Laptops, 8 Laptops",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P06018",po_stage:"Triage Staging",priority:"0",total_quantity:576.0,verified_count:628,total:5760.00,processing_type:"Fully Processed",vendor:"Menlo Park City School District, California",buyer:"Ryan Gillette",landed_on:"2025-12-26 14:00:00",product_summary:"576 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P05979",po_stage:"Triage Staging",priority:"1",total_quantity:885.0,verified_count:885,total:8850.00,processing_type:"Fully Processed",vendor:"Dedicated School Installation",buyer:"Josh Verhulst",landed_on:"2025-12-16 19:00:00",product_summary:"674 Chromebooks, 109 Laptops, 95 Apple Tablets, +more",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P06208",po_stage:"Triage Staging",priority:"0",total_quantity:929.0,verified_count:929,total:26715.40,processing_type:"Fully Processed",vendor:"ITsavvy",buyer:"Ryan Gillette",landed_on:"2025-12-04 16:00:00",product_summary:"680 Laptops, 186 Desktops, 34 Apple Tablets, +more",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P08013",po_stage:"Value Add",priority:"0",total_quantity:468.0,verified_count:469,total:13076.00,processing_type:"Fully Processed",vendor:"GZN Technology",buyer:"Kyle Wainwright",landed_on:"2026-02-16 16:00:00",product_summary:"468 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P07316",po_stage:"Value Add",priority:"0",total_quantity:2327.0,verified_count:2328,total:12488.34,processing_type:"Fully Processed",vendor:"Resource Regeneration, LLC dba S3 Recycling Solutions",buyer:"Kyle Wainwright",landed_on:"2026-01-21 16:00:00",product_summary:"2327 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08262",po_stage:"Value Add Staging",priority:"1",total_quantity:981.0,verified_count:970,total:23006.00,processing_type:"Fully Processed",vendor:"Chicago Surplus Computers Inc., Division of Comptech Recycling & Trading",buyer:"Josh Verhulst",landed_on:"2026-03-09 17:00:00",product_summary:"981 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08355",po_stage:"Value Add Staging",priority:"1",total_quantity:853.0,verified_count:853,total:19184.00,processing_type:"Fully Processed",vendor:"Chicago Surplus Computers Inc., Division of Comptech Recycling & Trading",buyer:"Josh Verhulst",landed_on:"2026-03-02 17:00:00",product_summary:"853 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P08014",po_stage:"Value Add Staging",priority:"0",total_quantity:1942.0,verified_count:1947,total:42798.00,processing_type:"Fully Processed",vendor:"GZN Technology",buyer:"Kyle Wainwright",landed_on:"2026-02-16 17:00:00",product_summary:"1942 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P04027",po_stage:"Value Add Staging",priority:"0",total_quantity:3167.0,verified_count:3168,total:52205.00,processing_type:"Fully Processed",vendor:"Providence Capital",buyer:"Ryan Gillette",landed_on:"2025-12-19 15:00:00",product_summary:"3040 Chromebooks, 126 Laptops, 1 Apple Tablets",has_apple:"True",sorting_uid_count:0},
+            {order_ref:"P06207",po_stage:"Value Add Staging",priority:"0",total_quantity:332.0,verified_count:334,total:2564.00,processing_type:"Fully Processed",vendor:"ComSources, LLC",buyer:"Jon LaPere",landed_on:"2025-12-09 16:00:00",product_summary:"332 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P05294",po_stage:"Value Add Staging",priority:"0",total_quantity:686.0,verified_count:689,total:9700.00,processing_type:"Fully Processed",vendor:"Nebsys",buyer:"Jon LaPere",landed_on:"2025-11-04 14:00:00",product_summary:"686 Chromebooks",has_apple:"False",sorting_uid_count:0},
+            {order_ref:"P02467",po_stage:"Value Add Staging",priority:"0",total_quantity:1271.0,verified_count:1272,total:6752.00,processing_type:"Fully Processed",vendor:"Pleasant Valley Community School District",buyer:"Ryan Gillette",landed_on:"2025-06-03 16:00:32",product_summary:"1271 Chromebooks",has_apple:"False",sorting_uid_count:0}
+        ];
+
+        // State
+        let currentModalPO = null;
+        const TODAY = new Date('2026-04-01');
+        let manualPriorities = {}; // Track manual order changes per stage
+        let poNotes = loadFromStorage('po_notes') || {};
+
+        // ===== INITIALIZATION =====
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTimestamp();
+            populateFilterOptions();
+            renderDashboard();
+            attachEventListeners();
+        });
+
+        // ===== UTILITIES =====
+        function getDaysOnHand(landedOn) {
+            if (!landedOn) return null;
+            const date = new Date(landedOn);
+            const diff = TODAY - date;
+            return Math.floor(diff / (1000 * 60 * 60 * 24));
+        }
+
+        function getColorClass(po) {
+            // Color coding priority (first match wins)
+            if (po.processing_type === "Direct to Stock") return "dts";
+            if (po.priority === "1") return "urgent";
+            if (po.has_apple === "True" || po.has_apple === true) return "apple";
+            const days = getDaysOnHand(po.landed_on);
+            if (days !== null && days >= 90) return "days90";
+            return "";
+        }
+
+        function getTotalQty(po) {
+            return po.verified_count > 0 ? po.verified_count : po.total_quantity;
+        }
+
+        function formatCurrency(val) {
+            return '$' + parseFloat(val).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
+        function updateTimestamp() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+            document.getElementById('timestamp').textContent = timeStr;
+        }
+
+        function loadFromStorage(key) {
+            try {
+                return JSON.parse(localStorage.getItem(key));
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function saveToStorage(key, value) {
+            try {
+                localStorage.setItem(key, JSON.stringify(value));
+            } catch (e) {
+                console.warn('Storage error:', e);
+            }
+        }
+
+        // ===== FILTERS & SORT =====
+        function populateFilterOptions() {
+            const stages = [...new Set(poData.map(p => p.po_stage))].sort();
+            const buyers = [...new Set(poData.map(p => p.buyer))].sort();
+            const vendors = [...new Set(poData.map(p => p.vendor))].sort();
+            const types = [...new Set(poData.map(p => p.processing_type))].sort();
+
+            const stageSelect = document.getElementById('filterStage');
+            stages.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = s;
+                stageSelect.appendChild(opt);
+            });
+
+            const buyerSelect = document.getElementById('filterBuyer');
+            buyers.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.textContent = b;
+                buyerSelect.appendChild(opt);
+            });
+
+            const vendorSelect = document.getElementById('filterVendor');
+            vendors.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                vendorSelect.appendChild(opt);
+            });
+
+            const typeSelect = document.getElementById('filterType');
+            types.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t;
+                opt.textContent = t;
+                typeSelect.appendChild(opt);
+            });
+        }
+
+        function getFilteredData() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const stageFilter = document.getElementById('filterStage').value;
+            const buyerFilter = document.getElementById('filterBuyer').value;
+            const vendorFilter = document.getElementById('filterVendor').value;
+            const typeFilter = document.getElementById('filterType').value;
+
+            let filtered = poData.filter(po => {
+                const matchesSearch = !search ||
+                    po.order_ref.toLowerCase().includes(search) ||
+                    po.vendor.toLowerCase().includes(search) ||
+                    po.buyer.toLowerCase().includes(search) ||
+                    po.product_summary.toLowerCase().includes(search);
+
+                const matchesStage = !stageFilter || po.po_stage === stageFilter;
+                const matchesBuyer = !buyerFilter || po.buyer === buyerFilter;
+                const matchesVendor = !vendorFilter || po.vendor === vendorFilter;
+                const matchesType = !typeFilter || po.processing_type === typeFilter;
+
+                return matchesSearch && matchesStage && matchesBuyer && matchesVendor && matchesType;
+            });
+
+            const sortBy = document.getElementById('sortBy').value;
+            const sortDir = document.getElementById('sortDirection').value === 'asc' ? 1 : -1;
+
+            if (sortBy === 'days') {
+                filtered.sort((a, b) => {
+                    const daysA = getDaysOnHand(a.landed_on) || -999;
+                    const daysB = getDaysOnHand(b.landed_on) || -999;
+                    return (daysA - daysB) * sortDir;
+                });
+            } else if (sortBy === 'qty') {
+                filtered.sort((a, b) => (getTotalQty(a) - getTotalQty(b)) * sortDir);
+            } else if (sortBy === 'value') {
+                filtered.sort((a, b) => (parseFloat(a.total) - parseFloat(b.total)) * sortDir);
+            } else if (sortBy === 'landed') {
+                filtered.sort((a, b) => {
+                    const dateA = a.landed_on ? new Date(a.landed_on) : new Date(0);
+                    const dateB = b.landed_on ? new Date(b.landed_on) : new Date(0);
+                    return (dateA - dateB) * sortDir;
+                });
+            }
+
+            return filtered;
+        }
+
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('filterStage').value = '';
+            document.getElementById('filterBuyer').value = '';
+            document.getElementById('filterVendor').value = '';
+            document.getElementById('filterType').value = '';
+            document.getElementById('sortBy').value = 'stage';
+            document.getElementById('sortDirection').value = 'asc';
+            renderDashboard();
+        }
+
+        // ===== RENDERING =====
+        function renderDashboard() {
+            const filtered = getFilteredData();
+            const groupedByStage = {};
+
+            STAGE_ORDER.forEach(stage => {
+                groupedByStage[stage] = [];
+            });
+
+            filtered.forEach(po => {
+                if (groupedByStage[po.po_stage]) {
+                    groupedByStage[po.po_stage].push(po);
+                }
+            });
+
+            // Apply manual priorities
+            STAGE_ORDER.forEach(stage => {
+                if (manualPriorities[stage]) {
+                    const currentOrder = groupedByStage[stage].map(p => p.order_ref);
+                    const manual = manualPriorities[stage];
+                    const ordered = [];
+                    manual.forEach(ref => {
+                        const idx = currentOrder.indexOf(ref);
+                        if (idx !== -1) {
+                            ordered.push(groupedByStage[stage][idx]);
+                        }
+                    });
+                    const remaining = groupedByStage[stage].filter(p => !manual.includes(p.order_ref));
+                    groupedByStage[stage] = ordered.concat(remaining);
+                }
+            });
+
+            // Update stats
+            updateStats(poData, filtered);
+
+            // Render stages
+            const container = document.getElementById('stagesContainer');
+            container.innerHTML = '';
+
+            STAGE_ORDER.forEach(stage => {
+                const pos = groupedByStage[stage];
+                const hasAny = poData.some(p => p.po_stage === stage);
+
+                if (!hasAny) return;
+
+                const section = document.createElement('div');
+                section.className = 'stage-section';
+
+                const header = document.createElement('div');
+                header.className = 'stage-header';
+                header.innerHTML = `
+                    <span>
+                        <span class="stage-toggle">▼</span>
+                        <span class="stage-title">${stage}</span>
+                        <span class="stage-counts">(${pos.length} POs | ${pos.reduce((sum, p) => sum + getTotalQty(p), 0)} units)</span>
+                    </span>
+                `;
+                header.onclick = function(e) {
+                    if (e.target.closest('.stage-toggle') || e.target.closest('.stage-title') || e.target.closest('.stage-counts')) {
+                        header.classList.toggle('collapsed');
+                        content.classList.toggle('collapsed');
+                    }
+                };
+
+                const content = document.createElement('div');
+                content.className = 'stage-content';
+
+                if (pos.length === 0) {
+                    content.innerHTML = '<div class="empty-state">No POs in this stage</div>';
+                } else {
+                    const table = document.createElement('table');
+                    table.className = 'po-table';
+                    table.draggable = false;
+                    table.dataset.stage = stage;
+
+                    table.innerHTML = `
+                        <thead>
+                            <tr>
+                                <th style="width: 24px;"></th>
+                                <th>Order Ref</th>
+                                <th>Priority</th>
+                                <th>Total QTY</th>
+                                <th>Value</th>
+                                <th>Type</th>
+                                <th>Vendor</th>
+                                <th>Buyer</th>
+                                <th>Products</th>
+                                <th>Landed</th>
+                                <th>Days On Hand</th>
+                                ${stage === 'Putaway' ? '<th>In Sorting</th>' : '<th></th>'}
+                                <th>Tags/Notes</th>
+                                <th style="width: 80px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    `;
+
+                    const tbody = table.querySelector('tbody');
+                    pos.forEach((po, idx) => {
+                        const row = document.createElement('tr');
+                        row.className = getColorClass(po);
+                        row.draggable = true;
+                        row.dataset.ref = po.order_ref;
+                        row.dataset.index = idx;
+
+                        const days = getDaysOnHand(po.landed_on);
+                        const daysText = days !== null ? `${days}d` : '—';
+
+                        const notes = poNotes[po.order_ref] || {};
+                        const tags = notes.tags || [];
+
+                        row.innerHTML = `
+                            <td><span class="drag-handle" draggable="false">⠿</span></td>
+                            <td><span class="order-ref">${po.order_ref}</span></td>
+                            <td><button class="icon-btn" onclick="togglePriority('${po.order_ref}', '${stage}')" title="Toggle priority">${po.priority === "1" ? "🔴" : "⭕"}</button></td>
+                            <td>${getTotalQty(po).toLocaleString()}</td>
+                            <td>${formatCurrency(po.total)}</td>
+                            <td>${po.processing_type}</td>
+                            <td>${po.vendor}</td>
+                            <td>${po.buyer}</td>
+                            <td style="max-width: 200px; font-size: 12px;">${po.product_summary}</td>
+                            <td>${po.landed_on ? new Date(po.landed_on).toLocaleDateString() : '—'}</td>
+                            <td style="text-align: center;">${daysText}</td>
+                            ${stage === 'Putaway' ? `<td style="text-align: center;">${po.sorting_uid_count}</td>` : '<td></td>'}
+                            <td>
+                                <div class="tags-container">
+                                    ${tags.map(t => `<span class="tag ${t.toLowerCase()}">${t}</span>`).join('')}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="actions-cell">
+                                    <button class="icon-btn" onclick="toggleApple('${po.order_ref}', '${stage}')" title="Toggle Apple flag">${po.has_apple === "True" || po.has_apple === true ? APPLE_SVG : APPLE_SVG_HOLLOW}</button>
+                                    <button class="icon-btn" onclick="toggleDTS('${po.order_ref}', '${stage}')" title="Toggle Direct to Stock">⚡</button>
+                                    <button class="icon-btn" onclick="openNotesModal('${po.order_ref}')" title="Edit notes & tags">📝</button>
+                                </div>
+                            </td>
+                        `;
+
+                        // Drag events
+                        row.addEventListener('dragstart', dragStart);
+                        row.addEventListener('dragover', dragOver);
+                        row.addEventListener('drop', dragDrop);
+                        row.addEventListener('dragend', dragEnd);
+                        row.addEventListener('dragenter', dragEnter);
+                        row.addEventListener('dragleave', dragLeave);
+
+                        tbody.appendChild(row);
+                    });
+
+                    content.appendChild(table);
+                }
+
+                section.appendChild(header);
+                section.appendChild(content);
+                container.appendChild(section);
+            });
+
+            updateFilterCount(filtered.length);
+        }
+
+        function updateStats(allData, filteredData) {
+            const stats = document.getElementById('statsBar');
+
+            const totalCount = allData.length;
+            const urgentCount = allData.filter(p => p.priority === "1").length;
+            const appleCount = allData.filter(p => p.has_apple === "True" || p.has_apple === true).length;
+            const dtsCount = allData.filter(p => p.processing_type === "Direct to Stock").length;
+            const totalUnits = allData.reduce((sum, p) => sum + getTotalQty(p), 0);
+
+            stats.innerHTML = `
+                <div class="stat-item">
+                    <span class="stat-label">Total POs:</span>
+                    <span class="stat-value">${totalCount}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Urgent:</span>
+                    <span class="stat-value urgent">${urgentCount}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">${APPLE_SVG} Apple:</span>
+                    <span class="stat-value apple">${appleCount}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Direct to Stock:</span>
+                    <span class="stat-value dts" style="color: #2E7D32;">${dtsCount}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Total Units:</span>
+                    <span class="stat-value">${totalUnits.toLocaleString()}</span>
+                </div>
+            `;
+        }
+
+        function updateFilterCount(visibleCount) {
+            document.getElementById('filterCount').textContent = visibleCount;
+            document.getElementById('totalCount').textContent = poData.length;
+        }
+
+        // ===== DRAG & DROP =====
+        let draggedRow = null;
+        let draggedStage = null;
+
+        function dragStart(e) {
+            draggedRow = this;
+            draggedStage = this.closest('table').dataset.stage;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function dragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function dragEnter(e) {
+            if (this !== draggedRow && this.closest('table').dataset.stage === draggedStage) {
+                this.classList.add('drag-over');
+            }
+        }
+
+        function dragLeave(e) {
+            if (this !== draggedRow) {
+                this.classList.remove('drag-over');
+            }
+        }
+
+        function dragDrop(e) {
+            e.preventDefault();
+            if (draggedRow !== this && this.closest('table').dataset.stage === draggedStage) {
+                const tbody = this.closest('tbody');
+                const allRows = Array.from(tbody.querySelectorAll('tr'));
+                const draggedIndex = allRows.indexOf(draggedRow);
+                const targetIndex = allRows.indexOf(this);
+
+                if (draggedIndex < targetIndex) {
+                    this.parentNode.insertBefore(draggedRow, this.nextSibling);
+                } else {
+                    this.parentNode.insertBefore(draggedRow, this);
+                }
+
+                // Save manual order
+                const stage = draggedStage;
+                const newOrder = Array.from(tbody.querySelectorAll('tr')).map(r => r.dataset.ref);
+                manualPriorities[stage] = newOrder;
+            }
+            return false;
+        }
+
+        function dragEnd(e) {
+            draggedRow.classList.remove('dragging');
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        }
+
+        // ===== QUICK TOGGLES =====
+        function togglePriority(ref, stage) {
+            const po = poData.find(p => p.order_ref === ref);
+            if (po) {
+                po.priority = po.priority === "1" ? "0" : "1";
+                renderDashboard();
+                showToast(`${ref}: Priority ${po.priority === "1" ? "Urgent" : "Normal"}`);
+            }
+        }
+
+        function toggleApple(ref, stage) {
+            const po = poData.find(p => p.order_ref === ref);
+            if (po) {
+                po.has_apple = po.has_apple === "True" || po.has_apple === true ? "False" : "True";
+                renderDashboard();
+                showToast(`${ref}: Apple flag toggled`);
+            }
+        }
+
+        function toggleDTS(ref, stage) {
+            const po = poData.find(p => p.order_ref === ref);
+            if (po) {
+                po.processing_type = po.processing_type === "Direct to Stock" ? "Fully Processed" : "Direct to Stock";
+                renderDashboard();
+                showToast(`${ref}: Processing type toggled`);
+            }
+        }
+
+        // ===== NOTES & TAGS =====
+        function openNotesModal(ref) {
+            currentModalPO = poData.find(p => p.order_ref === ref);
+            if (!currentModalPO) return;
+
+            const notes = poNotes[ref] || {text: '', tags: []};
+            document.getElementById('modalOrderRef').textContent = ref;
+            document.getElementById('notesInput').value = notes.text || '';
+
+            // Uncheck all, then check relevant ones
+            document.querySelectorAll('.tag-checkbox input').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.tag-checkbox').forEach(lbl => lbl.classList.remove('checked'));
+
+            (notes.tags || []).forEach(tag => {
+                const cb = document.querySelector(`.tag-checkbox input[value="${tag}"]`);
+                if (cb) {
+                    cb.checked = true;
+                    cb.closest('.tag-checkbox').classList.add('checked');
+                }
+            });
+
+            document.getElementById('notesModal').classList.add('open');
+        }
+
+        function closeNotesModal() {
+            document.getElementById('notesModal').classList.remove('open');
+            currentModalPO = null;
+        }
+
+        function saveNotes(e) {
+            e.preventDefault();
+            if (!currentModalPO) return;
+
+            const ref = currentModalPO.order_ref;
+            const text = document.getElementById('notesInput').value;
+            const tags = Array.from(document.querySelectorAll('.tag-checkbox input:checked')).map(cb => cb.value);
+
+            poNotes[ref] = {text, tags};
+            saveToStorage('po_notes', poNotes);
+
+            closeNotesModal();
+            renderDashboard();
+            showToast(`${ref}: Notes saved`);
+        }
+
+        // ===== EXPORT =====
+        function exportPriorities() {
+            const lines = ['Order Ref,Stage,Priority,Total QTY,Value,Processing Type,Vendor,Buyer,Notes'];
+
+            STAGE_ORDER.forEach(stage => {
+                const section = document.querySelector(`table[data-stage="${stage}"]`);
+                if (section) {
+                    const rows = section.querySelectorAll('tbody tr');
+                    rows.forEach(row => {
+                        const ref = row.dataset.ref;
+                        const po = poData.find(p => p.order_ref === ref);
+                        if (po) {
+                            const notes = poNotes[ref] || {};
+                            const notesStr = (notes.text || '').replace(/"/g, '""');
+                            const tagsStr = (notes.tags || []).join(', ');
+                            const fullNotes = notesStr + (tagsStr ? ` [${tagsStr}]` : '');
+                            lines.push(`"${ref}","${stage}","${po.priority === "1" ? "Urgent" : "Normal"}",${getTotalQty(po)},"${formatCurrency(po.total)}","${po.processing_type}","${po.vendor.replace(/"/g, '""')}","${po.buyer.replace(/"/g, '""')}","${fullNotes}"`);
+                        }
+                    });
+                }
+            });
+
+            const csv = lines.join('\n');
+            const blob = new Blob([csv], {type: 'text/csv'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `PO_Priority_Export_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showToast('Priority list exported');
+        }
+
+        // ===== TOAST =====
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        // ===== EVENT LISTENERS =====
+        function attachEventListeners() {
+            document.getElementById('searchInput').addEventListener('input', renderDashboard);
+            document.getElementById('filterStage').addEventListener('change', renderDashboard);
+            document.getElementById('filterBuyer').addEventListener('change', renderDashboard);
+            document.getElementById('filterVendor').addEventListener('change', renderDashboard);
+            document.getElementById('filterType').addEventListener('change', renderDashboard);
+            document.getElementById('sortBy').addEventListener('change', renderDashboard);
+            document.getElementById('sortDirection').addEventListener('change', renderDashboard);
+
+            // Tag checkbox interactivity
+            document.querySelectorAll('.tag-checkbox input').forEach(cb => {
+                cb.addEventListener('change', function() {
+                    this.closest('.tag-checkbox').classList.toggle('checked');
+                });
+            });
+
+            // Modal close on backdrop click
+            document.getElementById('notesModal').addEventListener('click', function(e) {
+                if (e.target === this) closeNotesModal();
+            });
+        }
+    </script>
+</body>
+</html>
