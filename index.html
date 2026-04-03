@@ -485,6 +485,69 @@
             justify-content: flex-end;
         }
 
+        /* Stage Settings */
+        .stage-settings-btn {
+            background: none;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #555;
+            transition: all 0.2s;
+        }
+        .stage-settings-btn:hover {
+            border-color: #1F3864;
+            color: #1F3864;
+        }
+        .stage-checklist {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .stage-check-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        .stage-check-item:hover {
+            border-color: #1F3864;
+        }
+        .stage-check-item.checked {
+            border-color: #1F3864;
+            background-color: #f0f4f8;
+        }
+        .stage-check-item input {
+            cursor: pointer;
+        }
+        .stage-check-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .stage-check-actions button {
+            padding: 4px 12px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f5f5f5;
+            cursor: pointer;
+        }
+        .stage-check-actions button:hover {
+            background: #e0e0e0;
+        }
+
         /* Toast */
         .toast {
             position: fixed;
@@ -676,9 +739,30 @@
 
         <button onclick="resetFilters()">Reset Filters</button>
         <button class="secondary" onclick="exportPriorities()">Export Priority List</button>
+        <button class="stage-settings-btn" onclick="openStageSettings()">⚙️ Stages</button>
 
         <div class="filters-info">
             <span id="filterCount">--</span> / <span id="totalCount">--</span> POs visible
+        </div>
+    </div>
+
+    <!-- Stage Visibility Settings Modal -->
+    <div id="stageSettingsModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeStageSettings()">&times;</button>
+            <div class="modal-header">Visible Stages</div>
+            <p style="color: #666; font-size: 13px; margin: 0 0 12px;">Choose which stages appear on your dashboard. This setting persists across refreshes and devices.</p>
+            <div class="stage-check-actions">
+                <button onclick="stageCheckAll(true)">Select All</button>
+                <button onclick="stageCheckAll(false)">Deselect All</button>
+            </div>
+            <div class="stage-checklist" id="stageChecklist">
+                <!-- Populated by JS -->
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="secondary" onclick="closeStageSettings()">Cancel</button>
+                <button type="button" onclick="saveStageSettings()">Save</button>
+            </div>
         </div>
     </div>
 
@@ -876,6 +960,7 @@
         let manualPriorities = {}; // Track manual order changes per stage
         let poNotes = {};
         let poOverrides = {}; // {ref: {priority, has_apple, processing_type}}
+        let hiddenStages = []; // stages the user has opted to hide
         let cloudSyncEnabled = false;
         let syncDebounceTimer = null;
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxOd9BOKOAB73cD98xZTTZJAHNYvobWpnfsttO2VJDpVlgcjjjT3OHYCFtUQFcaqZcM/exec';
@@ -915,6 +1000,7 @@
                     poNotes = data.customizations.poNotes || {};
                     manualPriorities = data.customizations.manualPriorities || {};
                     poOverrides = data.customizations.poOverrides || {};
+                    hiddenStages = data.customizations.hiddenStages || [];
                     // Apply overrides to poData
                     Object.keys(poOverrides).forEach(ref => {
                         const po = poData.find(p => p.order_ref === ref);
@@ -950,7 +1036,8 @@
                     customizations: {
                         poNotes: poNotes,
                         manualPriorities: manualPriorities,
-                        poOverrides: poOverrides
+                        poOverrides: poOverrides,
+                        hiddenStages: hiddenStages
                     }
                 };
                 // Always save locally as backup
@@ -1175,6 +1262,7 @@
                 const hasAny = poData.some(p => p.po_stage === stage);
 
                 if (!hasAny) return;
+                if (hiddenStages.includes(stage)) return;
 
                 const section = document.createElement('div');
                 section.className = 'stage-section';
@@ -1468,6 +1556,44 @@
             showToast(`${ref}: Notes saved`);
         }
 
+        // ===== STAGE VISIBILITY SETTINGS =====
+        function openStageSettings() {
+            const checklist = document.getElementById('stageChecklist');
+            checklist.innerHTML = '';
+            STAGE_ORDER.forEach(stage => {
+                const isVisible = !hiddenStages.includes(stage);
+                const item = document.createElement('label');
+                item.className = 'stage-check-item' + (isVisible ? ' checked' : '');
+                item.innerHTML = `<input type="checkbox" value="${stage}" ${isVisible ? 'checked' : ''}> ${stage}`;
+                item.querySelector('input').addEventListener('change', function() {
+                    item.classList.toggle('checked', this.checked);
+                });
+                checklist.appendChild(item);
+            });
+            document.getElementById('stageSettingsModal').classList.add('open');
+        }
+
+        function closeStageSettings() {
+            document.getElementById('stageSettingsModal').classList.remove('open');
+        }
+
+        function stageCheckAll(checked) {
+            document.querySelectorAll('#stageChecklist input').forEach(cb => {
+                cb.checked = checked;
+                cb.closest('.stage-check-item').classList.toggle('checked', checked);
+            });
+        }
+
+        function saveStageSettings() {
+            const allChecked = Array.from(document.querySelectorAll('#stageChecklist input'));
+            hiddenStages = allChecked.filter(cb => !cb.checked).map(cb => cb.value);
+            saveCloudState();
+            closeStageSettings();
+            renderDashboard();
+            const visibleCount = STAGE_ORDER.length - hiddenStages.length;
+            showToast(`Showing ${visibleCount} of ${STAGE_ORDER.length} stages`);
+        }
+
         // ===== EXPORT =====
         function exportPriorities() {
             const lines = ['Order Ref,Stage,Priority,Total QTY,Value,Processing Type,Vendor,Buyer,Notes'];
@@ -1536,6 +1662,9 @@
             // Modal close on backdrop click
             document.getElementById('notesModal').addEventListener('click', function(e) {
                 if (e.target === this) closeNotesModal();
+            });
+            document.getElementById('stageSettingsModal').addEventListener('click', function(e) {
+                if (e.target === this) closeStageSettings();
             });
         }
     </script>
