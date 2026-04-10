@@ -310,6 +310,11 @@
             font-weight: 600;
             color: #1F3864;
             min-width: 80px;
+            text-decoration: none;
+        }
+        a.order-ref:hover {
+            text-decoration: underline;
+            color: #2E5090;
         }
 
         /* Actions Cell */
@@ -1099,6 +1104,13 @@
             return '$' + parseFloat(val).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         }
 
+        function getOdooUrl(po) {
+            if (po.po_id) {
+                return 'http://erp.refreshedtech.com/web#id=' + po.po_id + '&action=551&model=purchase.order&view_type=form';
+            }
+            return 'http://erp.refreshedtech.com/web#action=551&model=purchase.order&view_type=list&search=' + encodeURIComponent(po.order_ref);
+        }
+
         function updateTimestamp() {
             const now = new Date();
             const timeStr = now.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
@@ -1332,7 +1344,7 @@
 
                         row.innerHTML = `
                             <td><span class="drag-handle" draggable="false">⠿</span></td>
-                            <td><span class="order-ref">${po.order_ref}</span></td>
+                            <td><a href="${getOdooUrl(po)}" target="_blank" class="order-ref" title="Open in Odoo">${po.order_ref}</a></td>
                             <td><button class="icon-btn" onclick="togglePriority('${po.order_ref}', '${stage}')" title="Toggle priority">${po.priority === "1" ? "🔴" : "⭕"}</button></td>
                             <td>${getTotalQty(po).toLocaleString()}</td>
                             <td>${formatCurrency(po.total)}</td>
