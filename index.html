@@ -347,6 +347,17 @@
             align-items: center;
         }
 
+        .note-preview {
+            font-size: 11px;
+            color: #666;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+            margin-top: 2px;
+            line-height: 1.3;
+        }
+
         .tag {
             display: inline-block;
             padding: 3px 8px;
@@ -1359,6 +1370,7 @@
                                 <div class="tags-container">
                                     ${tags.map(t => `<span class="tag ${t.toLowerCase()}">${t}</span>`).join('')}
                                 </div>
+                                ${notes.text ? `<div class="note-preview" title="${notes.text.replace(/"/g, '&quot;')}">${notes.text.length > 40 ? notes.text.substring(0, 40) + '…' : notes.text}</div>` : ''}
                             </td>
                             <td>
                                 <div class="actions-cell">
